@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KING STORE - المتجر الملوكي</title>
+    <style>
+        /* التنسيقات الملوكية الثابتة */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: radial-gradient(circle at top right, #ffffff, #e0e0e0); background-attachment: fixed; text-align: center; padding-bottom: 120px; color: #333; }
+        header { background: linear-gradient(180deg, #1a1a1a 0%, #333 100%); color: #d4af37; padding: 20px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-bottom: 3px solid #d4af37; }
+        .filter-bar { display: flex; overflow-x: auto; background: rgba(255,255,255,0.8); padding: 15px; gap: 12px; backdrop-filter: blur(5px); position: sticky; top: 75px; z-index: 999; }
+        .filter-btn { background: white; border: 1px solid #ddd; padding: 10px 22px; border-radius: 30px; white-space: nowrap; font-weight: bold; transition: 0.3s; cursor: pointer; }
+        .filter-btn.active { background: #ff4757; color: white; border-color: #ff4757; }
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .product-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08); border: 1px solid rgba(212, 175, 55, 0.2); }
+        .product-card img { width: 100%; height: 180px; object-fit: cover; }
+        .price-tag { color: #27ae60; font-weight: 900; font-size: 18px; margin: 10px 0; }
+        #product-page, #cart-page { display: none; background: rgba(255,255,255,0.98); min-height: 100vh; position: absolute; top: 0; left: 0; width: 100%; z-index: 2000; text-align: right; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .cart-item { display: flex; background: white; margin: 15px; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); align-items: center; border-right: 5px solid #d4af37; }
+        .cart-item img { width: 80px; height: 80px; border-radius: 15px; margin-left: 15px; object-fit: cover; }
+        #custom-alert { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 25px; z-index: 5000; width: 85%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border-top: 5px solid #d4af37; text-align: center; }
+        .alert-icon-king { font-size: 50px; margin-top: -60px; background: white; width: 80px; height: 80px; border-radius: 50%; margin-left: auto; margin-right: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.1); line-height: 80px; }
+        .cart-float-btn { position: fixed; bottom: 30px; right: 20px; background: #ff4757; color: white; padding: 15px 30px; border-radius: 50px; font-weight: bold; border: none; box-shadow: 0 10px 25px rgba(255, 71, 87, 0.4); z-index: 3000; cursor: pointer; }
+        .wa-float-btn { position: fixed; bottom: 30px; left: 20px; background: #25d366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; text-decoration: none; box-shadow: 0 10px 25px rgba(37, 211, 102, 0.3); z-index: 3000; }
+        .btn-delete { background: #fff; border: 1px solid #ff4757; color: #ff4757; padding: 8px 15px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-delete:active { background: #ff4757; color: white; }
+    </style>
+</head>
+<body>
+
+<div id="overlay" onclick="closeAlert()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:4999; backdrop-filter:blur(5px);"></div>
+
+<div id="custom-alert">
+    <div class="alert-icon-king">👑</div>
+    <h3 style="color:#1a1a1a; margin-top: 10px;">عاش يا ملك!</h3>
+    <p id="alert-msg" style="color:#666; font-size: 16px; margin: 15px 0;"></p>
+    <button onclick="closeAlert()" style="background:#27ae60; color:white; border:none; padding:12px 40px; border-radius:15px; font-weight:bold; width:100%; cursor:pointer;">متابعة التسوق الملكي</button>
+</div>
+
+<div id="store-page">
+    <header>
+        <div style="font-size: 28px; font-weight: bold; letter-spacing: 2px;">KING STORE</div>
+        <div style="font-size: 14px; opacity: 0.8;">الفخامة في كل قطعة</div>
+    </header>
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterItems('all', this)">الكل</button>
+        <button class="filter-btn" onclick="filterItems('shoes', this)">أحذية</button>
+        <button class="filter-btn" onclick="filterItems('shirts', this)">قمصان</button>
+        <button class="filter-btn" onclick="filterItems('pants', this)">بناطيل</button>
+    </div>
+    <div class="products-grid" id="main-container"></div>
+</div>
+
+<div id="cart-page">
+    <div style="padding: 20px; background: #1a1a1a; color: #d4af37; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin:0;">🛒 طلبياتك الملكية</h2>
+        <button onclick="goBack()" style="background:none; border:1px solid #d4af37; color:#d4af37; border-radius:10px; padding:5px 15px; cursor:pointer;">إغلاق</button>
+    </div>
+    <div id="cart-items-list"></div>
+    <div id="cart-summary" style="padding: 25px; font-size: 22px; font-weight: bold; text-align: center; color: #1a1a1a;"></div>
+    <div style="padding: 0 20px;">
+        <button class="filter-btn" style="background:#25d366; color:white; width:100%; padding:18px; font-size:18px; border:none; border-radius: 15px;" onclick="sendToWA()">تأكيد الطلب عبر واتساب 💬</button>
+    </div>
+</div>
+
+<div id="product-page">
+    <button onclick="goBack()" style="margin: 20px; padding: 10px 20px; border-radius: 10px; border: 1px solid #ccc; background: white; cursor: pointer;">← رجوع</button>
+    <div style="padding: 20px;">
+        <img id="detail-img" style="width:100%; border-radius:30px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+        <h1 id="detail-title"></h1>
+        <p class="price-tag" id="detail-price" style="font-size:30px;"></p>
+        <div style="text-align:right; background:#f9f9f9; padding:20px; border-radius:20px; border: 1px solid #eee;">
+            <div style="margin-bottom: 5px;"><b>المقاس:</b></div>
+            <select id="p-size" style="width:100%; padding:12px; border-radius:10px; margin-bottom:15px;"></select>
+            <div style="margin-bottom: 5px;"><b>اللون:</b></div>
+            <select id="p-color" style="width:100%; padding:12px; border-radius:10px; margin-bottom:15px;">
+                <option>أسود</option><option>أبيض</option><option>كحلي</option>
+            </select>
+            <div style="margin-bottom: 5px;"><b>الكمية:</b></div>
+            <input type="number" id="p-qty" value="1" min="1" style="width:100%; padding:12px; border-radius:10px; text-align:center;">
+        </div>
+        <button class="filter-btn" style="background:#ff4757; color:white; width:100%; margin-top:20px; padding:18px; font-size:20px; border:none; border-radius: 20px;" onclick="addToCartDetailed()">أضف للشنطة 🛍️</button>
+    </div>
+</div>
+
+<button class="cart-float-btn" onclick="openCartPage()">🛒 العربة (<span id="count">0</span>)</button>
+<a href="https://wa.me/201063367159" class="wa-float-btn" target="_blank">💬</a>
+
+<script>
+    const myNumber = "201063367159";
+    let cart = [];
+    let currentProduct = null;
+
+    const products = [
+        { id: 1, name: "حذاء ملوكي برو", price: 850, cat: 'shoes' },
+        { id: 2, name: "قميص كلاسيك فاخر", price: 650, cat: 'shirts' },
+        { id: 3, name: "بنطلون جينز ملوكي", price: 750, cat: 'pants' },
+        { id: 4, name: "سنيكرز ملوكي أبيض", price: 850, cat: 'shoes' }
+    ];
+
+    function init() {
+        const container = document.getElementById('main-container');
+        products.forEach(p => {
+            container.innerHTML += `<div class="product-card" data-category="${p.cat}" onclick="openProductPage(${p.id})"><img src="${p.id}.jpg" onerror="this.src='https://via.placeholder.com/300?text=KING+STORE';"><div style="padding:15px;"><div style="font-weight:bold;">${p.name}</div><div class="price-tag">${p.price} ج.م</div><button style="background:#1a1a1a; color:white; border:none; width:100%; padding:10px; border-radius:12px; cursor:pointer;">عرض التفاصيل</button></div></div>`;
+        });
+    }
+
+    function openProductPage(id) {
+        currentProduct = products.find(x => x.id === id);
+        document.getElementById('detail-img').src = id + ".jpg";
+        document.getElementById('detail-title').innerText = currentProduct.name;
+        document.getElementById('detail-price').innerText = currentProduct.price + " ج.م";
+        const sizeSelect = document.getElementById('p-size');
+        sizeSelect.innerHTML = '';
+        if(currentProduct.cat === 'shoes') { for(let i=40; i<=48; i++) sizeSelect.innerHTML += `<option>${i}</option>`; }
+        else { ['M', 'L', 'XL', 'XXL'].forEach(s => sizeSelect.innerHTML += `<option>${s}</option>`); }
+        document.getElementById('store-page').style.display = 'none';
+        document.getElementById('product-page').style.display = 'block';
+    }
+
+    function addToCartDetailed() {
+        const size = document.getElementById('p-size').value;
+        const color = document.getElementById('p-color').value;
+        const qty = parseInt(document.getElementById('p-qty').value);
+        cart.push({ ...currentProduct, size, color, qty });
+        updateCartCount();
+        showKingAlert(`تم إضافة ${qty} قطعة بنجاح!`); 
+    }
+
+    function renderCart() {
+        const list = document.getElementById('cart-items-list');
+        list.innerHTML = '';
+        let total = 0;
+        cart.forEach((item, index) => {
+            total += (item.price * item.qty);
+            list.innerHTML += `
+                <div class="cart-item">
+                    <img src="${item.id}.jpg" onerror="this.src='https://via.placeholder.com/100';">
+                    <div style="flex-grow:1; text-align:right;">
+                        <strong>${item.name}</strong><br>
+                        <small>مقاس: ${item.size} | لون: ${item.color}</small><br>
+                        <span style="color:#27ae60; font-weight:bold;">${item.qty} × ${item.price} ج.م</span>
+                    </div>
+                    <button class="btn-delete" onclick="removeFromCart(${index})">حذف</button>
+                </div>`;
+        });
+        document.getElementById('cart-summary').innerText = `إجمالي الحساب: ${total} ج.م`;
+    }
+
+    // وظيفة الحذف اللي كانت ناقصة
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartCount();
+        renderCart(); // إعادة رسم السلة فوراً بعد الحذف
+    }
+
+    function updateCartCount() {
+        document.getElementById('count').innerText = cart.length;
+    }
+
+    function showKingAlert(text) {
+        document.getElementById('alert-msg').innerText = text;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('custom-alert').style.display = 'block';
+    }
+
+    function closeAlert() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('custom-alert').style.display = 'none';
+    }
+
+    function sendToWA() {
+        if(cart.length === 0) return showKingAlert("الشنطة فاضية يا ملك!"); 
+        let msg = "طلب ملكي 👑:\n" + cart.map(i => `- ${i.name} (مقاس ${i.size}) عدد ${i.qty}`).join('\n');
+        window.open(`https://wa.me/${myNumber}?text=${encodeURIComponent(msg)}`);
+    }
+
+    function filterItems(cat, btn) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.style.display = (cat === 'all' || card.dataset.category === cat) ? 'block' : 'none';
+        });
+    }
+
+    function openCartPage() { document.getElementById('store-page').style.display = 'none'; document.getElementById('product-page').style.display = 'none'; document.getElementById('cart-page').style.display = 'block'; renderCart(); }
+    function goBack() { document.getElementById('store-page').style.display = 'block'; document.getElementById('product-page').style.display = 'none'; document.getElementById('cart-page').style.display = 'none'; }
+
+    init();
+</script>
+</body>
+</html>
